@@ -3,6 +3,8 @@ package config
 import (
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -15,23 +17,25 @@ type Config struct {
 }
 
 func Load() *Config {
+	_ = godotenv.Load()
+
 	cfg := &Config{
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "5432"),
-		DBName:     getEnv("DB_NAME", "pr_service"),
-		DBUser:     getEnv("DB_USER", "pr_user"),
-		DBPassword: getEnv("DB_PASSWORD", "pr_password"),
-		AppPort:    getEnv("APP_PORT", "8080"),
+		DBHost:     getEnv("DB_HOST"),
+		DBPort:     getEnv("DB_PORT"),
+		DBName:     getEnv("DB_NAME"),
+		DBUser:     getEnv("DB_USER"),
+		DBPassword: getEnv("DB_PASSWORD"),
+		AppPort:    getEnv("APP_PORT"),
 	}
 
 	log.Printf("Config loaded: %+v\n", cfg)
-
 	return cfg
 }
 
-func getEnv(key, defaultVal string) string {
-	if value, exists := os.LookupEnv(key); exists {
+func getEnv(key string) string {
+	if value, exists := os.LookupEnv(key); exists && value != "" {
 		return value
 	}
-	return defaultVal
+	log.Fatalf("Required environment variable %s not set", key)
+	return ""
 }

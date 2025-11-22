@@ -5,12 +5,14 @@ services:
     image: postgres:16-alpine
     container_name: pr-db
     restart: unless-stopped
+    env_file:
+      - ./.env
     environment:
-      POSTGRES_DB: pr_service
-      POSTGRES_USER: pr_user
-      POSTGRES_PASSWORD: pr_password
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
 
@@ -21,14 +23,16 @@ services:
     container_name: pr-service
     depends_on:
       - pr-db
+    env_file:
+      - ./.env
     environment:
-      DB_HOST: pr-db
-      DB_PORT: 5432
-      DB_NAME: pr_service
-      DB_USER: pr_user
-      DB_PASSWORD: pr_password
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "8080:8080"
+      - "${APP_PORT}:8080"
     restart: unless-stopped
 
 volumes:
