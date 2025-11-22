@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  pr-db:
+    image: postgres:16-alpine
+    container_name: pr-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pr_service
+      POSTGRES_USER: pr_user
+      POSTGRES_PASSWORD: pr_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  pr-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pr-service
+    depends_on:
+      - pr-db
+    environment:
+      DB_HOST: pr-db
+      DB_PORT: 5432
+      DB_NAME: pr_service
+      DB_USER: pr_user
+      DB_PASSWORD: pr_password
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  db_data:
