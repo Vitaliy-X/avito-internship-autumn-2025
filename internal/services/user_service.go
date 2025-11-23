@@ -1,8 +1,6 @@
 package services
 
 import (
-	"errors"
-
 	"github.com/Vitaliy-X/avito-internship-autumn-2025/internal/domain/entities"
 	"github.com/Vitaliy-X/avito-internship-autumn-2025/internal/domain/repositories"
 )
@@ -13,14 +11,6 @@ type UserService struct {
 
 func NewUserService(userRepo repositories.UserRepository) *UserService {
 	return &UserService{userRepo: userRepo}
-}
-
-func (s *UserService) SetIsActive(userID entities.UserID, active bool) (*entities.User, error) {
-	user, err := s.userRepo.SetIsActive(string(userID), active)
-	if err != nil || user == nil {
-		return nil, errors.New("NOT_FOUND")
-	}
-	return user, nil
 }
 
 func (s *UserService) GetActiveUsersByTeam(teamName string, exclude []entities.UserID) ([]*entities.User, error) {
@@ -44,4 +34,12 @@ func (s *UserService) GetActiveUsersByTeam(teamName string, exclude []entities.U
 	}
 
 	return active, nil
+}
+
+func (s *UserService) SetIsActive(userID string, active bool) (*entities.User, error) {
+	user, err := s.userRepo.SetIsActive(userID, active)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
