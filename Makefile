@@ -1,22 +1,42 @@
 APP_NAME = pr-service
-CMD_DIR = ./cmd/$(APP_NAME)
-BIN_DIR = ./bin
-BIN_FILE = $(BIN_DIR)/$(APP_NAME)
+PROJECT = pr-service
+COMPOSE_FILE = docker-compose.yml
 
-.PHONY: build run tidy fmt clean
+# Detect docker compose command for Windows/Linux/Mac
+DOCKER_COMPOSE = $(shell if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi)
 
-build:
-	@mkdir -p $(BIN_DIR)
-	go build -o $(BIN_FILE) $(CMD_DIR)
+.PHONY: up up-d stop down clean restart migrate rollback
 
-run:
-	go run $(CMD_DIR)
+## Запуск всего проекта (с пересборкой)
+up:
+	$(DOCKER_COMPOSE) -p $(PROJECT) -f $(COMPOSE_FILE) up --build
 
-tidy:
-	go mod tidy
+## Запуск в фоне
+up-d:
+	$(DOCKER_COMPOSE) -p $(PROJECT) -f $(COMPOSE_FILE) up -d --build
 
-fmt:
-	go fmt ./...
+## Остановка
+stop:
+	$(DOCKER_COMPOSE) -p $(PROJECT) stop
 
+## Полная остановка + удаление контейнеров
+down:
+	$(DOCKER_COMPOSE) -p $(PROJECT) down
+
+## Полная очистка контейнеров + volumes
 clean:
-	rm -rf $(BIN_DIR)
+	$(DOCKER_COMPOSE) -p $(PROJECT) down -v
+
+## Перезапуск
+restart:
+	$(DOCKER_COMPOSE) -p $(PROJECT) restart
+
+## Применить миграции
+migrate:
+	$(DOCKER_COMPOSE) -p $(PROJECT) run --rm liquibase \
+	  --defaultsFile=/liquibase/liquibase.properties update
+
+## Откатить одну миграцию
+rollback:
+	$(DOCKER_COMPOSE) -p $(PROJECT) run --rm liquibase \
+	  --defaultsFile=/liquibase/liquibase.properties rollbackCount 1
