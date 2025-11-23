@@ -1,6 +1,8 @@
 package entities
 
-type PRID int64
+import "time"
+
+type PRID string
 
 type PRStatus string
 
@@ -15,4 +17,5 @@ type PullRequest struct {
 	AuthorID  UserID
 	Status    PRStatus
 	Reviewers []UserID
+	MergedAt  *time.Time
 }

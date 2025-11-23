@@ -1,6 +1,6 @@
 package entities
 
-type UserID int64
+type UserID string
 
 type User struct {
 	ID       UserID
