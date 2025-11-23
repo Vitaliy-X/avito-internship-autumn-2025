@@ -4,8 +4,13 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/Vitaliy-X/avito-internship-autumn-2025/internal/config"
+	"github.com/Vitaliy-X/avito-internship-autumn-2025/internal/controllers"
 	"github.com/Vitaliy-X/avito-internship-autumn-2025/internal/db"
+	"github.com/Vitaliy-X/avito-internship-autumn-2025/internal/domain/repositories/postgres"
+	"github.com/Vitaliy-X/avito-internship-autumn-2025/internal/services"
 )
 
 type App struct {
@@ -19,15 +24,20 @@ func New() *App {
 }
 
 func (a *App) Run() error {
-	_, err := db.Connect(a.cfg)
+	dbConn, err := db.Connect(a.cfg)
 	if err != nil {
 		return err
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("PR service is running"))
-	})
+	teamRepo := postgres.NewTeamRepository(dbConn)
+	userRepo := postgres.NewUserRepository(dbConn)
+
+	teamService := services.NewTeamService(teamRepo, userRepo)
+	teamController := controllers.NewTeamController(teamService)
+
+	r := chi.NewRouter()
+	r.Post("/team/add", teamController.AddTeam)
 
 	log.Printf("Server started on :%s\n", a.cfg.AppPort)
-	return http.ListenAndServe(":"+a.cfg.AppPort, nil)
+	return http.ListenAndServe(":"+a.cfg.AppPort, r)
 }

@@ -24,15 +24,15 @@ func (s *TeamService) CreateTeam(team *entities.Team, members []*entities.User) 
 	if err != nil {
 		return err
 	}
-	if exists {
-		return errors.New("TEAM_EXISTS")
-	}
 
-	if err := s.teamRepo.CreateTeam(team); err != nil {
-		return err
+	if !exists {
+		if err := s.teamRepo.CreateTeam(team); err != nil {
+			return err
+		}
 	}
 
 	for _, u := range members {
+		u.TeamName = team.Name
 		if err := s.userRepo.CreateOrUpdateUser(u); err != nil {
 			return err
 		}
