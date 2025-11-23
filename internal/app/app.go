@@ -31,6 +31,7 @@ func (a *App) Run() error {
 
 	teamRepo := postgres.NewTeamRepository(dbConn)
 	userRepo := postgres.NewUserRepository(dbConn)
+	prRepo := postgres.NewPRRepository(dbConn)
 
 	teamService := services.NewTeamService(teamRepo, userRepo)
 	teamController := controllers.NewTeamController(teamService)
@@ -38,12 +39,17 @@ func (a *App) Run() error {
 	userService := services.NewUserService(userRepo)
 	userController := controllers.NewUserController(userService)
 
+	prService := services.NewPRService(prRepo, userRepo)
+	prController := controllers.NewPRController(prService)
+
 	r := chi.NewRouter()
 
 	r.Post("/team/add", teamController.AddTeam)
 	r.Get("/team/get", teamController.GetTeam)
 
 	r.Post("/users/setIsActive", userController.SetIsActive)
+
+	r.Post("/pullRequest/create", prController.CreatePR)
 
 	log.Printf("Server started on :%s\n", a.cfg.AppPort)
 	return http.ListenAndServe(":"+a.cfg.AppPort, r)
