@@ -68,3 +68,48 @@ func (c *TeamController) AddTeam(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(resp)
 }
+
+func (c *TeamController) GetTeam(w http.ResponseWriter, r *http.Request) {
+	teamName := r.URL.Query().Get("team_name")
+	if teamName == "" {
+		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"team_name is required"}}`, http.StatusBadRequest)
+		return
+	}
+
+	team, err := c.teamService.GetTeam(teamName)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"error":{"code":"NOT_FOUND","message":"resource not found"}}`))
+		return
+	}
+
+	users, err := c.teamService.GetTeamMembers(teamName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type memberJSON struct {
+		UserID   string `json:"user_id"`
+		Username string `json:"username"`
+		IsActive bool   `json:"is_active"`
+	}
+
+	resp := map[string]any{
+		"team_name": team.Name,
+		"members":   []memberJSON{},
+	}
+
+	for _, u := range users {
+		resp["members"] = append(resp["members"].([]memberJSON), memberJSON{
+			UserID:   string(u.ID),
+			Username: u.Name,
+			IsActive: u.IsActive,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}

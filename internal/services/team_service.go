@@ -48,3 +48,7 @@ func (s *TeamService) GetTeam(name string) (*entities.Team, error) {
 	}
 	return team, nil
 }
+
+func (s *TeamService) GetTeamMembers(teamName string) ([]*entities.User, error) {
+	return s.userRepo.GetUsersByTeam(teamName)
+}

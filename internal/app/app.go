@@ -37,6 +37,7 @@ func (a *App) Run() error {
 
 	r := chi.NewRouter()
 	r.Post("/team/add", teamController.AddTeam)
+	r.Get("/team/get", teamController.GetTeam)
 
 	log.Printf("Server started on :%s\n", a.cfg.AppPort)
 	return http.ListenAndServe(":"+a.cfg.AppPort, r)
