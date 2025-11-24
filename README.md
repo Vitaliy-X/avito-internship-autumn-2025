@@ -59,3 +59,4 @@ make rollback
 - `POST /users/setIsActive` — установить флаг активности пользователя
 - `POST /pullRequest/create` — создать PR и автоматически назначить до 2 ревьюверов
 - `POST /pullRequest/merge` — меняет статус PR на "merged" (идемпотентно), устанавливает время "mergedAt"
+- `POST /pullRequest/reassign` — переназначает конкретного ревьювера на другого из его команды

@@ -104,3 +104,22 @@ func (r *PRRepo) AssignReviewers(prID string) ([]entities.UserID, error) {
 
 	return reviewers, nil
 }
+
+func (r *PRRepo) ReassignReviewer(prID string, oldUserID string) (string, error) {
+	var newUser sql.NullString
+	row := r.db.QueryRow(`
+		SELECT reassign_reviewer($1, $2)
+	`, prID, oldUserID)
+
+	if err := row.Scan(&newUser); err != nil {
+		if err == sql.ErrNoRows {
+			return "", err
+		}
+		return "", err
+	}
+
+	if !newUser.Valid {
+		return "", nil
+	}
+	return newUser.String, nil
+}

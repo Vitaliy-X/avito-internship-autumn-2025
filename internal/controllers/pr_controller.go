@@ -104,3 +104,65 @@ func (c *PRController) MergePR(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 }
+
+type ReassignRequest struct {
+	PullRequestID string `json:"pull_request_id"`
+	OldUserID     string `json:"old_user_id"`
+}
+
+func (c *PRController) ReassignReviewer(w http.ResponseWriter, r *http.Request) {
+	var req ReassignRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"invalid JSON"}}`, http.StatusBadRequest)
+		return
+	}
+	if req.PullRequestID == "" || req.OldUserID == "" {
+		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"pull_request_id and old_user_id are required"}}`, http.StatusBadRequest)
+		return
+	}
+
+	pr, replacedBy, err := c.prService.ReassignReviewer(req.PullRequestID, req.OldUserID)
+	if err != nil {
+		code := err.Error()
+		status := http.StatusInternalServerError
+
+		switch code {
+		case "PR_MERGED":
+			status = http.StatusConflict // 409
+		case "NOT_ASSIGNED":
+			status = http.StatusConflict // 409
+		case "NO_CANDIDATE":
+			status = http.StatusConflict // 409
+		case "NOT_FOUND":
+			status = http.StatusNotFound // 404
+		default:
+			status = http.StatusInternalServerError
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]string{
+				"code":    code,
+				"message": code,
+			},
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	resp := map[string]any{
+		"pr": map[string]any{
+			"pull_request_id":    string(pr.ID),
+			"pull_request_name":  pr.Title,
+			"author_id":          pr.AuthorID,
+			"status":             pr.Status,
+			"assigned_reviewers": pr.Reviewers,
+			"created_at":         pr.CreatedAt,
+			"merged_at":          pr.MergedAt,
+		},
+		"replaced_by": replacedBy,
+	}
+	json.NewEncoder(w).Encode(resp)
+}

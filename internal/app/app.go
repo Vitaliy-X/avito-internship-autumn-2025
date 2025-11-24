@@ -51,6 +51,7 @@ func (a *App) Run() error {
 
 	r.Post("/pullRequest/create", prController.CreatePR)
 	r.Post("/pullRequest/merge", prController.MergePR)
+	r.Post("/pullRequest/reassign", prController.ReassignReviewer)
 
 	log.Printf("Server started on :%s\n", a.cfg.AppPort)
 	return http.ListenAndServe(":"+a.cfg.AppPort, r)

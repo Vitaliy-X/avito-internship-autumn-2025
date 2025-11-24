@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/Vitaliy-X/avito-internship-autumn-2025/internal/domain/entities"
@@ -72,4 +73,41 @@ func (s *PRService) MergePR(prID string) (*entities.PullRequest, error) {
 	}
 
 	return pr, nil
+}
+
+func (s *PRService) ReassignReviewer(prID, oldUserID string) (*entities.PullRequest, string, error) {
+	pr, err := s.prRepo.GetPRByID(prID)
+	if err != nil {
+		return nil, "", err
+	}
+	if pr == nil {
+		return nil, "", errors.New("NOT_FOUND")
+	}
+
+	newUser, err := s.prRepo.ReassignReviewer(prID, oldUserID)
+	if err != nil {
+		msg := strings.ToLower(err.Error())
+		switch {
+		case strings.Contains(msg, "merged"):
+			return nil, "", errors.New("PR_MERGED")
+		case strings.Contains(msg, "not_assigned"):
+			return nil, "", errors.New("NOT_ASSIGNED")
+		case strings.Contains(msg, "no_candidate"):
+			return nil, "", errors.New("NO_CANDIDATE")
+		case strings.Contains(msg, "user_not_found") || strings.Contains(msg, "pr not found"):
+			return nil, "", errors.New("NOT_FOUND")
+		default:
+			return nil, "", err
+		}
+	}
+
+	updatedPR, err := s.prRepo.GetPRByID(prID)
+	if err != nil {
+		return nil, "", err
+	}
+	if updatedPR == nil {
+		return nil, "", errors.New("NOT_FOUND")
+	}
+
+	return updatedPR, newUser, nil
 }

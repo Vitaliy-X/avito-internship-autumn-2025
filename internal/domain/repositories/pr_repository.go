@@ -8,4 +8,5 @@ type PullRequestRepository interface {
 	UpdatePR(pr *entities.PullRequest) error
 	GetPRsWhereReviewer(userID string) ([]*entities.PullRequest, error)
 	AssignReviewers(prID string) ([]entities.UserID, error)
+	ReassignReviewer(prID string, oldUserID string) (string, error)
 }
