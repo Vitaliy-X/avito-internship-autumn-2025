@@ -7,9 +7,11 @@ DECLARE
     ids TEXT[];
 BEGIN
     SELECT ARRAY(
-        SELECT user_id FROM users
-        WHERE team_name = team AND is_active = TRUE
-        ORDER BY user_id
+        SELECT u.user_id
+        FROM users u
+        WHERE u.team_name = team
+          AND u.is_active = TRUE
+        ORDER BY u.user_id
     )
     INTO ids;
     RETURN COALESCE(ids, ARRAY[]::TEXT[]);
@@ -23,12 +25,14 @@ AS
 DECLARE
     result TEXT;
 BEGIN
-    SELECT user_id INTO result FROM users
-    WHERE team_name = team
-      AND is_active = TRUE
-      AND NOT (user_id = ANY (exclude_ids))
+    SELECT u.user_id
+    INTO result
+    FROM users u
+    WHERE u.team_name = team
+      AND u.is_active = TRUE
+      AND NOT (u.user_id = ANY (exclude_ids))
     ORDER BY random()
-        LIMIT 1;
+    LIMIT 1;
     RETURN result;
 END';
 
@@ -44,19 +48,19 @@ DECLARE
     reviewers   TEXT[] := ARRAY[]::TEXT[];
     candidate   TEXT;
 BEGIN
-    SELECT author_id
+    SELECT pull_requests.author_id
     INTO author
     FROM pull_requests
-    WHERE pull_request_id = pr_id;
+    WHERE pull_requests.pull_request_id = pr_id;
 
     IF author IS NULL THEN
         RAISE EXCEPTION ''PR not found: %'', pr_id;
     END IF;
 
-    SELECT team_name
+    SELECT users.team_name
     INTO team_name
     FROM users
-    WHERE user_id = author;
+    WHERE users.user_id = author;
 
     IF team_name IS NULL THEN
         RAISE EXCEPTION ''Team for author % not found'', author;
@@ -65,8 +69,8 @@ BEGIN
     members := get_active_team_members(team_name);
 
     members := ARRAY(
-        SELECT unnest(members)
-        WHERE unnest <> author
+        SELECT m FROM unnest(members) AS m
+        WHERE m <> author
     );
 
     SELECT pick_random_active_member(team_name, reviewers || author)
@@ -83,7 +87,7 @@ BEGIN
 
     UPDATE pull_requests
     SET assigned_reviewers = reviewers
-    WHERE pull_request_id = pr_id;
+    WHERE pull_requests.pull_request_id = pr_id;
 
     RETURN reviewers;
 END';
@@ -99,10 +103,10 @@ DECLARE
     new_user    TEXT;
     old_team    TEXT;
 BEGIN
-    SELECT status, assigned_reviewers
+    SELECT pull_requests.status, pull_requests.assigned_reviewers
     INTO pr_status, reviewers
     FROM pull_requests
-    WHERE pull_request_id = pr_id;
+    WHERE pull_requests.pull_request_id = pr_id;
 
     IF pr_status IS NULL THEN
         RAISE EXCEPTION ''PR not found'';
@@ -116,10 +120,10 @@ BEGIN
         RAISE EXCEPTION ''not_assigned'';
     END IF;
 
-    SELECT team_name
+    SELECT users.team_name
     INTO old_team
     FROM users
-    WHERE user_id = old_user;
+    WHERE users.user_id = old_user;
 
     IF old_team IS NULL THEN
         RAISE EXCEPTION ''user_not_found'';
@@ -138,7 +142,7 @@ BEGIN
 
     UPDATE pull_requests
     SET assigned_reviewers = reviewers
-    WHERE pull_request_id = pr_id;
+    WHERE pull_requests.pull_request_id = pr_id;
 
     RETURN new_user;
 END';
