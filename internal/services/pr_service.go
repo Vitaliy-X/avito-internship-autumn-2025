@@ -49,3 +49,27 @@ func (s *PRService) CreatePR(prID, title, authorID string) (*entities.PullReques
 
 	return pr, nil
 }
+
+func (s *PRService) MergePR(prID string) (*entities.PullRequest, error) {
+	pr, err := s.prRepo.GetPRByID(prID)
+	if err != nil {
+		return nil, err
+	}
+	if pr == nil {
+		return nil, errors.New("NOT_FOUND")
+	}
+
+	if pr.Status == entities.PRStatusMerged {
+		return pr, nil
+	}
+
+	now := time.Now().UTC()
+	pr.Status = entities.PRStatusMerged
+	pr.MergedAt = &now
+
+	if err := s.prRepo.UpdatePR(pr); err != nil {
+		return nil, err
+	}
+
+	return pr, nil
+}

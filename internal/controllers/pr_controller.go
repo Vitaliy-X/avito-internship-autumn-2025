@@ -21,6 +21,10 @@ type CreatePRRequest struct {
 	AuthorID        string `json:"author_id"`
 }
 
+type MergePRRequest struct {
+	PullRequestID string `json:"pull_request_id"`
+}
+
 func (c *PRController) CreatePR(w http.ResponseWriter, r *http.Request) {
 	var req CreatePRRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -56,6 +60,47 @@ func (c *PRController) CreatePR(w http.ResponseWriter, r *http.Request) {
 			"status":             pr.Status,
 			"assigned_reviewers": pr.Reviewers,
 			"created_at":         pr.CreatedAt,
+		},
+	})
+}
+
+func (c *PRController) MergePR(w http.ResponseWriter, r *http.Request) {
+	var req MergePRRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"invalid JSON"}}`, http.StatusBadRequest)
+		return
+	}
+	if req.PullRequestID == "" {
+		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"pull_request_id is required"}}`, http.StatusBadRequest)
+		return
+	}
+
+	pr, err := c.prService.MergePR(req.PullRequestID)
+	if err != nil {
+		code := err.Error()
+		status := http.StatusInternalServerError
+		if code == "NOT_FOUND" {
+			status = http.StatusNotFound
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]string{"code": code, "message": code},
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{
+		"pr": map[string]any{
+			"pull_request_id":    string(pr.ID),
+			"pull_request_name":  pr.Title,
+			"author_id":          pr.AuthorID,
+			"status":             pr.Status,
+			"assigned_reviewers": pr.Reviewers,
+			"created_at":         pr.CreatedAt,
+			"merged_at":          pr.MergedAt,
 		},
 	})
 }

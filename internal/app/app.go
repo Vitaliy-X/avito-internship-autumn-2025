@@ -50,6 +50,7 @@ func (a *App) Run() error {
 	r.Post("/users/setIsActive", userController.SetIsActive)
 
 	r.Post("/pullRequest/create", prController.CreatePR)
+	r.Post("/pullRequest/merge", prController.MergePR)
 
 	log.Printf("Server started on :%s\n", a.cfg.AppPort)
 	return http.ListenAndServe(":"+a.cfg.AppPort, r)

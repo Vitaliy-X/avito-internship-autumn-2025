@@ -58,3 +58,4 @@ make rollback
 - `GET /team/get` — получить команду с участниками
 - `POST /users/setIsActive` — установить флаг активности пользователя
 - `POST /pullRequest/create` — создать PR и автоматически назначить до 2 ревьюверов
+- `POST /pullRequest/merge` — меняет статус PR на "merged" (идемпотентно), устанавливает время "mergedAt"
