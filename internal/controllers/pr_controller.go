@@ -25,10 +25,15 @@ type MergePRRequest struct {
 	PullRequestID string `json:"pull_request_id"`
 }
 
+type ReassignRequest struct {
+	PullRequestID string `json:"pull_request_id"`
+	OldUserID     string `json:"old_user_id"`
+}
+
 func (c *PRController) CreatePR(w http.ResponseWriter, r *http.Request) {
 	var req CreatePRRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"invalid JSON"}}`, http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid JSON")
 		return
 	}
 
@@ -41,18 +46,11 @@ func (c *PRController) CreatePR(w http.ResponseWriter, r *http.Request) {
 		} else if code == "NOT_FOUND" {
 			status = http.StatusNotFound
 		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]any{
-			"error": map[string]string{"code": code, "message": code},
-		})
+		JSONError(w, status, code, code)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]any{
+	JSONResponse(w, http.StatusCreated, map[string]any{
 		"pr": map[string]any{
 			"pull_request_id":    string(pr.ID),
 			"pull_request_name":  pr.Title,
@@ -67,11 +65,11 @@ func (c *PRController) CreatePR(w http.ResponseWriter, r *http.Request) {
 func (c *PRController) MergePR(w http.ResponseWriter, r *http.Request) {
 	var req MergePRRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"invalid JSON"}}`, http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid JSON")
 		return
 	}
 	if req.PullRequestID == "" {
-		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"pull_request_id is required"}}`, http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "INVALID_REQUEST", "pull_request_id is required")
 		return
 	}
 
@@ -82,17 +80,11 @@ func (c *PRController) MergePR(w http.ResponseWriter, r *http.Request) {
 		if code == "NOT_FOUND" {
 			status = http.StatusNotFound
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]any{
-			"error": map[string]string{"code": code, "message": code},
-		})
+		JSONError(w, status, code, code)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]any{
+	JSONResponse(w, http.StatusOK, map[string]any{
 		"pr": map[string]any{
 			"pull_request_id":    string(pr.ID),
 			"pull_request_name":  pr.Title,
@@ -105,19 +97,14 @@ func (c *PRController) MergePR(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type ReassignRequest struct {
-	PullRequestID string `json:"pull_request_id"`
-	OldUserID     string `json:"old_user_id"`
-}
-
 func (c *PRController) ReassignReviewer(w http.ResponseWriter, r *http.Request) {
 	var req ReassignRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"invalid JSON"}}`, http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid JSON")
 		return
 	}
 	if req.PullRequestID == "" || req.OldUserID == "" {
-		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"pull_request_id and old_user_id are required"}}`, http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "INVALID_REQUEST", "pull_request_id and old_user_id are required")
 		return
 	}
 
@@ -127,31 +114,16 @@ func (c *PRController) ReassignReviewer(w http.ResponseWriter, r *http.Request) 
 		status := http.StatusInternalServerError
 
 		switch code {
-		case "PR_MERGED":
-			status = http.StatusConflict // 409
-		case "NOT_ASSIGNED":
-			status = http.StatusConflict // 409
-		case "NO_CANDIDATE":
-			status = http.StatusConflict // 409
+		case "PR_MERGED", "NOT_ASSIGNED", "NO_CANDIDATE":
+			status = http.StatusConflict
 		case "NOT_FOUND":
-			status = http.StatusNotFound // 404
-		default:
-			status = http.StatusInternalServerError
+			status = http.StatusNotFound
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]any{
-			"error": map[string]string{
-				"code":    code,
-				"message": code,
-			},
-		})
+		JSONError(w, status, code, code)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	resp := map[string]any{
 		"pr": map[string]any{
 			"pull_request_id":    string(pr.ID),
@@ -164,5 +136,5 @@ func (c *PRController) ReassignReviewer(w http.ResponseWriter, r *http.Request) 
 		},
 		"replaced_by": replacedBy,
 	}
-	json.NewEncoder(w).Encode(resp)
+	JSONResponse(w, http.StatusOK, resp)
 }

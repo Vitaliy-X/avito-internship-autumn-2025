@@ -23,15 +23,13 @@ type SetIsActiveRequest struct {
 func (c *UserController) SetIsActive(w http.ResponseWriter, r *http.Request) {
 	var req SetIsActiveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"invalid JSON"}}`, http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid JSON")
 		return
 	}
 
 	user, err := c.userService.SetIsActive(req.UserID, req.IsActive)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"error":{"code":"NOT_FOUND","message":"user not found"}}`))
+		JSONError(w, http.StatusNotFound, "NOT_FOUND", "user not found")
 		return
 	}
 
@@ -44,7 +42,5 @@ func (c *UserController) SetIsActive(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	JSONResponse(w, http.StatusOK, resp)
 }

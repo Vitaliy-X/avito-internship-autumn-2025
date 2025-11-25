@@ -30,7 +30,7 @@ type AddTeamUserRequest struct {
 func (c *TeamController) AddTeam(w http.ResponseWriter, r *http.Request) {
 	var req AddTeamRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid JSON")
 		return
 	}
 
@@ -49,11 +49,10 @@ func (c *TeamController) AddTeam(w http.ResponseWriter, r *http.Request) {
 	err := c.teamService.CreateTeam(team, users)
 	if err != nil {
 		if err.Error() == "TEAM_EXISTS" {
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(`{"error":{"code":"TEAM_EXISTS","message":"team_name already exists"}}`))
+			JSONError(w, http.StatusBadRequest, "TEAM_EXISTS", "team_name already exists")
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		JSONError(w, http.StatusInternalServerError, "INTERNAL", err.Error())
 		return
 	}
 
@@ -63,30 +62,25 @@ func (c *TeamController) AddTeam(w http.ResponseWriter, r *http.Request) {
 			"members":   req.Members,
 		},
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resp)
+	JSONResponse(w, http.StatusCreated, resp)
 }
 
 func (c *TeamController) GetTeam(w http.ResponseWriter, r *http.Request) {
 	teamName := r.URL.Query().Get("team_name")
 	if teamName == "" {
-		http.Error(w, `{"error":{"code":"INVALID_REQUEST","message":"team_name is required"}}`, http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "INVALID_REQUEST", "team_name is required")
 		return
 	}
 
 	team, err := c.teamService.GetTeam(teamName)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"error":{"code":"NOT_FOUND","message":"resource not found"}}`))
+		JSONError(w, http.StatusNotFound, "NOT_FOUND", "resource not found")
 		return
 	}
 
 	users, err := c.teamService.GetTeamMembers(teamName)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		JSONError(w, http.StatusInternalServerError, "INTERNAL", err.Error())
 		return
 	}
 
@@ -109,7 +103,5 @@ func (c *TeamController) GetTeam(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	JSONResponse(w, http.StatusOK, resp)
 }
